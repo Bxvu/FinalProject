@@ -5,19 +5,16 @@
 Curious, Creative, Tenacious(requires hopefulness)
 
 **********Gameplay ideas:
-Jump on enemy head to create jump boost using power up code
-Randomize jump sound
+make platform disappear if stood on for too long
+shoot carrots up at enemy
 
 **********Bugs
 when you get launched by powerup or head jump player sometimes snaps to platform abruptly 
 happens when hitting jump during power up boost
-
 **********Gameplay fixes
-Platform randomness leaves player in limbo for extended periods
-Lower spawn location so player can get out of random stuck situations
 
 **********Features
-Varied powerups
+upgrades for shooting carrots at enemies
 
 
 '''
@@ -94,8 +91,8 @@ class Game:
         # instantiate new platform 
         for plat in PLATFORM_LIST:
             # no longer need to assign to variable because we're passing self.groups in Sprite library
-            # p = Platform(self, *plat)
-            Platform(self, *plat)
+            self.p = Platform(self, *plat)
+            # Platform(self, *plat)
             # no longer needed because we pass in Sprite lib file
             # self.all_sprites.add(p)
             # self.platforms.add(p)
@@ -159,6 +156,13 @@ class Game:
                         self.player.pos.y = find_lowest.rect.top
                         self.player.vel.y = 0
                         self.player.jumping = False
+
+        for plat in self.platforms:
+            if pg.sprite.spritecollide(self.player, self.platforms, False):
+                    plat.platDecay()
+                    # self.p.platDecay()
+                    print("touching platform")
+                    
                 
         # if player reaches top 1/4 of screen...
         if self.player.rect.top <= HEIGHT / 4:
@@ -200,8 +204,8 @@ class Game:
         if len(self.platforms) == 0:
             self.playing = False
         # generate new random platforms
-        while len(self.platforms) < 6:
-            width = random.randrange(50, 100)
+        while len(self.platforms) < 10:
+            width = random.randrange(50, 1000)
             ''' removed widths and height params to allow for sprites '''
             """ changed due to passing into groups through sprites lib file """
             # p = Platform(self, random.randrange(0,WIDTH-width), 
@@ -217,10 +221,10 @@ class Game:
                         self.playing = False
                     self.running = False
                 if event.type == pg.KEYDOWN:
-                    if event.key == pg.K_SPACE:
+                    if event.key == pg.K_w:
                         self.player.jump()
                 if event.type == pg.KEYUP:
-                    if event.key == pg.K_SPACE:
+                    if event.key == pg.K_w:
                         """ # cuts the jump short if the space bar is released """
                         self.player.jump_cut()
     def draw(self):

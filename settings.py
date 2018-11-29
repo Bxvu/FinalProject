@@ -1,7 +1,7 @@
 TITLE = "jumpy"
 # screen dims
-WIDTH = 480
-HEIGHT = 600
+WIDTH = 1080
+HEIGHT = 700
 # frames per second
 FPS = 60
 # colors
@@ -18,7 +18,7 @@ HS_FILE = "highscore.txt"
 PLAYER_ACC = 0.5
 PLAYER_FRICTION = -0.12
 PLAYER_GRAV = 0.8
-PLAYER_JUMP = 20
+PLAYER_JUMP = 25
 # game settings
 BOOST_POWER = 60
 POW_SPAWN_PCT = 7
@@ -40,7 +40,12 @@ PLATFORM_LIST = [(0, HEIGHT - 40, WIDTH, 40),
                  (200, HEIGHT - 450, WIDTH-350, 40)]
 '''
 PLATFORM_LIST = [(0, HEIGHT - 40),
-                 (65, HEIGHT - 300),
+                 (WIDTH/2, HEIGHT - 300),
                  (20, HEIGHT - 350),
                  (200, HEIGHT - 150),
                  (200, HEIGHT - 450)]
+# PLATFORM_LIST = [(0, HEIGHT - 40),
+#                  (65, HEIGHT - 300),
+#                  (20, HEIGHT - 350),
+#                  (200, HEIGHT - 150),
+#                  (200, HEIGHT - 450)]

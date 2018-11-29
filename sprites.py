@@ -188,6 +188,14 @@ class Platform(Sprite):
         self.rect.y = y
         if random.randrange(100) < POW_SPAWN_PCT:
             Pow(self.game, self)
+        self.decaytime = 100000
+    def platDecay(self):
+        while self.decaytime > 0:
+            self.decaytime += -1
+            # print(self.decaytime)
+        self.kill()
+        self.decaytime = 100000
+
 class Pow(Sprite):
     def __init__(self, game, plat):
         # allows layering in LayeredUpdates sprite group
@@ -228,7 +236,7 @@ class Mob(Sprite):
         self.vx = randrange(1, 4)
         if self.rect.centerx > WIDTH:
             self.vx *= -1
-        self.rect.y = randrange(HEIGHT//1.5)
+        self.rect.y = randrange(HEIGHT//1.1)
         self.vy = 0
         self.dy = 0.5
     def update(self):
