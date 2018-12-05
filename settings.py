@@ -1,7 +1,7 @@
-TITLE = "jumpy"
+TITLE = "Jumpy Boi"
 # screen dims
 WIDTH = 1080
-HEIGHT = 700
+HEIGHT = 720
 # frames per second
 FPS = 60
 # colors
@@ -21,7 +21,7 @@ PLAYER_GRAV = 0.8
 PLAYER_JUMP = 25
 # game settings
 BOOST_POWER = 60
-POW_SPAWN_PCT = 7
+POW_SPAWN_PCT = 6
 MOB_FREQ = 500
 # layers - uses numerical value in layered sprites
 PLAYER_LAYER = 2
@@ -42,8 +42,8 @@ PLATFORM_LIST = [(0, HEIGHT - 40, WIDTH, 40),
 PLATFORM_LIST = [(0, HEIGHT - 40),
                  (WIDTH/2, HEIGHT - 300),
                  (20, HEIGHT - 350),
-                 (200, HEIGHT - 150),
-                 (200, HEIGHT - 450)]
+                 (500, HEIGHT - 150),
+                 (800, HEIGHT - 450)]
 # PLATFORM_LIST = [(0, HEIGHT - 40),
 #                  (65, HEIGHT - 300),
 #                  (20, HEIGHT - 350),

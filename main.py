@@ -32,7 +32,7 @@ class Game:
         # init sound mixer
         pg.mixer.init()
         self.screen = pg.display.set_mode((WIDTH, HEIGHT))
-        pg.display.set_caption("jumpy")
+        pg.display.set_caption("Jumpy Boi")
         self.clock = pg.time.Clock()
         self.running = True
         self.font_name = pg.font.match_font(FONT_NAME)
@@ -80,19 +80,22 @@ class Game:
         self.clouds = pg.sprite.Group()
         # add powerups
         self.powerups = pg.sprite.Group()
-        
+        self.carrots = pg.sprite.Group()
         self.mob_timer = 0
         # add a player 1 to the group
         self.player = Player(self)
         # add mobs
         self.mobs = pg.sprite.Group()
+        # self.carrotss = Carrot(self, self.player.rect.centerx, self.player.rect.centery)
+        #invincibility when boosted so that you wont boost into an enemy and die
+        self.boosted = False
         # no longer needed after passing self.groups in Sprites library file
         # self.all_sprites.add(self.player)
         # instantiate new platform 
         for plat in PLATFORM_LIST:
             # no longer need to assign to variable because we're passing self.groups in Sprite library
-            self.p = Platform(self, *plat)
-            # Platform(self, *plat)
+            # self.p = Platform(self, *plat)
+            Platform(self, *plat)
             # no longer needed because we pass in Sprite lib file
             # self.all_sprites.add(p)
             # self.platforms.add(p)
@@ -100,7 +103,7 @@ class Game:
             c = Cloud(self)
             c.rect.y += 500
         # load music
-        pg.mixer.music.load(path.join(self.snd_dir, 'happy.ogg'))
+        pg.mixer.music.load(path.join(self.snd_dir, 'YBSS.mp3'))
         # call the run method
         self.run()
     def run(self):
@@ -120,9 +123,13 @@ class Game:
         
         # shall we spawn a mob?
         now = pg.time.get_ticks()
-        if now - self.mob_timer > 5000 + random.choice([-1000, -500, 0, 500, 1000]):
+        if now - self.mob_timer > 2000 + random.choice([-1000, -500, 0, 500, 1000]):
             self.mob_timer = now
-            Mob(self)
+            #random choice between spawning mobs
+            if randint(0,1) == 0:
+                Mob(self)
+            else:
+                VerticalMob(self)
         ##### check for mob collisions ######
         # now using collision mask to determine collisions
         # can use rectangle collisions here first if we encounter performance issues
@@ -135,15 +142,19 @@ class Game:
                 print("mob is " + str(mob_hits[0].rect_top))
                 self.head_jump_sound.play()
                 self.player.vel.y = -BOOST_POWER
+                self.boosted = True
             else:
-                print("player is " + str(self.player.pos.y))
-                print("mob is " + str(mob_hits[0].rect_top))
-                self.playing = False
+                #only kills player if they are not boosted
+                if self.boosted == False:
+                    print("player is " + str(self.player.pos.y))
+                    print("mob is " + str(mob_hits[0].rect_top))
+                    self.playing = False
 
         # check to see if player can jump - if falling
-        if self.player.vel.y > 0:
+        if self.player.vel.y >= 0:
             hits = pg.sprite.spritecollide(self.player, self.platforms, False)
             if hits:
+                # self.boosted = False
                 # set var to be current hit in list to find which to 'pop' to when two or more collide with player
                 find_lowest = hits[0]
                 for hit in hits:
@@ -156,12 +167,14 @@ class Game:
                         self.player.pos.y = find_lowest.rect.top
                         self.player.vel.y = 0
                         self.player.jumping = False
+                        
 
-        for plat in self.platforms:
-            if pg.sprite.spritecollide(self.player, self.platforms, False):
-                    plat.platDecay()
-                    # self.p.platDecay()
-                    print("touching platform")
+        # for plat in self.platforms:
+        #     if pg.sprite.spritecollide(self.player, self.platforms, False):
+        #             plat.platDecay()
+        #             # self.p.platDecay()
+        #             print("touching platform")
+
                     
                 
         # if player reaches top 1/4 of screen...
@@ -189,10 +202,14 @@ class Game:
         pow_hits = pg.sprite.spritecollide(self.player, self.powerups, True)
         for pow in pow_hits:
             if pow.type == 'boost':
+                self.boosted = True
                 self.boost_sound.play()
                 self.player.vel.y = -BOOST_POWER
                 self.player.jumping = False
-        
+        #kills enemies if they touch carrots
+        if pg.sprite.groupcollide(self.mobs,self.carrots,True,True):
+            self.score += 25
+
         # Die!
         if self.player.rect.bottom > HEIGHT:
             '''make all sprites fall up when player falls'''
@@ -204,14 +221,16 @@ class Game:
         if len(self.platforms) == 0:
             self.playing = False
         # generate new random platforms
-        while len(self.platforms) < 10:
-            width = random.randrange(50, 1000)
+        
+        while len(self.platforms) < 15:
+            width = random.randrange(50, WIDTH-50)
             ''' removed widths and height params to allow for sprites '''
             """ changed due to passing into groups through sprites lib file """
             # p = Platform(self, random.randrange(0,WIDTH-width), 
             #                 random.randrange(-75, -30))
+            
             Platform(self, random.randrange(0,WIDTH-width), 
-                            random.randrange(-75, -30))
+                            random.randrange(-75, -30)) 
             # self.platforms.add(p)
             # self.all_sprites.add(p)
     def events(self):
@@ -224,9 +243,14 @@ class Game:
                     if event.key == pg.K_w:
                         self.player.jump()
                 if event.type == pg.KEYUP:
-                    if event.key == pg.K_w:
+                    if event.key == pg.K_w and self.boosted == False:
                         """ # cuts the jump short if the space bar is released """
                         self.player.jump_cut()
+                if event.type == pg.KEYDOWN:
+                    if event.key == pg.K_SPACE:
+                        Carrot(self, self.player.rect.centerx, self.player.rect.centery)
+                        self.carrots.update()
+                        # self.head_jump_sound.play()
     def draw(self):
         self.screen.fill(SKY_BLUE)
         self.all_sprites.draw(self.screen)
@@ -249,7 +273,7 @@ class Game:
         """ # game splash screen """
         self.screen.fill(BLACK)
         self.draw_text(TITLE, 48, WHITE, WIDTH/2, HEIGHT/4)
-        self.draw_text("WASD to move, Space to jump", 22, WHITE, WIDTH/2, HEIGHT/2)
+        self.draw_text("WASD to move, Space to shoot", 22, WHITE, WIDTH/2, HEIGHT/2)
         self.draw_text("Press any key to play...", 22, WHITE, WIDTH / 2, HEIGHT * 3/4)
         self.draw_text("High score " + str(self.highscore), 22, WHITE, WIDTH / 2, 15)
         pg.display.flip()
@@ -261,7 +285,7 @@ class Game:
             return
         self.screen.fill(BLACK)
         self.draw_text(TITLE, 48, WHITE, WIDTH/2, HEIGHT/4)
-        self.draw_text("WASD to move, Space to jump", 22, WHITE, WIDTH/2, HEIGHT/2)
+        self.draw_text("WASD to move, Space to shoot", 22, WHITE, WIDTH/2, HEIGHT/2)
         self.draw_text("Press any key to play...", 22, WHITE, WIDTH / 2, HEIGHT * 3/4)
         self.draw_text("High score " + str(self.highscore), 22, WHITE, WIDTH / 2, HEIGHT/2 + 40)
         if self.score > self.highscore:

@@ -176,8 +176,52 @@ class Platform(Sprite):
         self.groups = game.all_sprites, game.platforms
         Sprite.__init__(self, self.groups)
         self.game = game
+        # changeInScore = score + 500
+        # self.imageRotation = 0
         images = [self.game.spritesheet.get_image(0, 288, 380, 94), 
-                  self.game.spritesheet.get_image(213, 1662, 201, 100)]
+                  self.game.spritesheet.get_image(213, 1662, 201, 100),                 
+                  self.game.spritesheet.get_image(0, 768, 380, 94),
+                  self.game.spritesheet.get_image(213, 1764, 201, 100),
+                  self.game.spritesheet.get_image(0, 672, 380, 94),
+                  self.game.spritesheet.get_image(208, 1879, 201, 100),
+                  self.game.spritesheet.get_image(0, 96, 380, 94),
+                  self.game.spritesheet.get_image(382, 408, 200, 100),
+                  self.game.spritesheet.get_image(0, 960, 380, 94),
+                  self.game.spritesheet.get_image(218, 1558, 200, 100)
+        ]
+        # imagesGrass = [self.game.spritesheet.get_image(0, 288, 380, 94), 
+        #           self.game.spritesheet.get_image(213, 1662, 201, 100),                 
+        #           ]
+        # imagesSnow = [self.game.spritesheet.get_image(0, 768, 380, 94),
+        #           self.game.spritesheet.get_image(213, 1764, 201, 100),
+        #           ]
+        # imagesSand = [self.game.spritesheet.get_image(0, 672, 380, 94),
+        #           self.game.spritesheet.get_image(208, 1879, 201, 100),
+        #           ]
+        # imagesStone = [self.game.spritesheet.get_image(0, 96, 380, 94),
+        #           self.game.spritesheet.get_image(382, 408, 200, 100),
+        #           ]
+        # imagesWood = [self.game.spritesheet.get_image(0, 960, 380, 94),
+        #           self.game.spritesheet.get_image(218, 1558, 200, 100)
+        #           ]
+        # if changeInScore < score:
+        #     changeInScore = score + 500
+        #     self.imageRotation += 1
+        #     if self.imageRotation >= 4:
+        #         self.imageRotation = 0
+        # if platType == "grass":
+        #     self.image = random.choice(imagesGrass)
+        # elif platType == "wood":
+        #     self.image = random.choice(imagesWood)
+        # elif platType == "sand":
+        #     self.image = random.choice(imagesSand)
+        # elif platType == "snow":
+        #     self.image = random.choice(imagesSnow)
+        # elif platType == "stone":
+        #     self.image = random.choice(imagesStone)
+        # else:
+        #     self.imageRotation = 0
+        #     self.image = random.choice(imagesGrass)
         self.image = random.choice(images)
         self.image.set_colorkey(BLACK)
         '''leftovers from random rectangles before images'''
@@ -188,6 +232,8 @@ class Platform(Sprite):
         self.rect.y = y
         if random.randrange(100) < POW_SPAWN_PCT:
             Pow(self.game, self)
+        if random.randrange(100) < 75:
+            Deco(self.game, self)
         self.decaytime = 100000
     def platDecay(self):
         while self.decaytime > 0:
@@ -216,6 +262,37 @@ class Pow(Sprite):
         # checks to see if plat is in the game's platforms group so we can kill the powerup instance
         if not self.game.platforms.has(self.plat):
             self.kill()
+#decoration class for visuals 
+class Deco(Sprite):
+    def __init__(self, game, plat):
+        # allows layering in LayeredUpdates sprite group
+        self._layer = CLOUD_LAYER
+        # add a groups property where we can pass all instances of this object into game groups
+        self.groups = game.all_sprites
+        Sprite.__init__(self, self.groups)
+        self.game = game
+        self.plat = plat
+        images = [self.game.spritesheet.get_image(868, 1877, 58, 57),
+                    self.game.spritesheet.get_image(784, 1931, 82, 70),
+                    self.game.spritesheet.get_image(534, 1063, 58, 57),
+                    self.game.spritesheet.get_image(801, 752, 82, 70),
+                    self.game.spritesheet.get_image(707, 134, 117, 160),
+                    self.game.spritesheet.get_image(814, 1574, 81, 85),
+                    self.game.spritesheet.get_image(812, 453, 81, 99)
+                                ]
+        for frame in images:
+            frame.set_colorkey(BLACK)
+        self.image = random.choice(images)
+        self.image.set_colorkey(BLACK)
+        self.rect = self.image.get_rect()
+        self.rect.centerx = self.plat.rect.centerx - randint(-(self.plat.rect.width)/2,self.plat.rect.width/2)
+        self.rect.bottom = self.plat.rect.top
+    def update(self):
+        self.rect.bottom = self.plat.rect.top
+        # checks to see if plat is in the game's platforms group so we can kill the powerup instance
+        if not self.game.platforms.has(self.plat):
+            self.kill()
+#mob that moves horizontally
 class Mob(Sprite):
     def __init__(self, game):
         # allows layering in LayeredUpdates sprite group
@@ -224,11 +301,9 @@ class Mob(Sprite):
         self.groups = game.all_sprites, game.mobs
         Sprite.__init__(self, self.groups)
         self.game = game
-        self.image_up = self.game.spritesheet.get_image(566, 510, 122, 139)
-        self.image_up.set_colorkey(BLACK)
-        self.image_down = self.game.spritesheet.get_image(568, 1534, 122, 135)
-        self.image_down.set_colorkey(BLACK)
-        self.image = self.image_up
+        self.load_images()
+        self.last_update = 0
+        self.image = self.images[0]
         self.image.set_colorkey(BLACK)
         self.rect = self.image.get_rect()
         self.rect.centerx = choice([-100, WIDTH + 100])
@@ -239,17 +314,18 @@ class Mob(Sprite):
         self.rect.y = randrange(HEIGHT//1.1)
         self.vy = 0
         self.dy = 0.5
+        self.current_frame = 0
     def update(self):
         self.rect.x += self.vx
         self.vy += self.dy
         self.rect_top = self.rect.top
-        if self.vy > 3 or  self.vy < -3:
+        if self.vy > 5 or  self.vy < -5:
             self.dy *= -1
         center = self.rect.center
         if self.dy < 0:
-            self.image = self.image_up
+            self.animate()
         else:
-            self.image = self.image_down
+            self.image = self.images[4]
         self.rect = self.image.get_rect()
         self.mask = pg.mask.from_surface(self.image)
         self.rect.center = center
@@ -257,3 +333,88 @@ class Mob(Sprite):
         self.rect.y += self.vy
         if self.rect.left > WIDTH + 100 or self.rect.right < -100:
             self.kill()
+    def load_images(self):
+        self.images = [self.game.spritesheet.get_image(382, 635, 174, 126),
+                    self.game.spritesheet.get_image(0, 1879, 206, 107),
+                    self.game.spritesheet.get_image(0, 1559, 216, 101),
+                    self.game.spritesheet.get_image(0, 1456, 216, 101),
+                    self.game.spritesheet.get_image(382, 510, 182, 123)
+                                ]
+        '''setup left frames by flipping and appending them into an empty list'''
+        for frame in self.images:
+            frame.set_colorkey(BLACK)
+    def animate(self):
+        # gets time in miliseconds
+        now = pg.time.get_ticks()
+        if now - self.last_update > 100:
+            self.last_update = now     
+            self.current_frame = (self.current_frame + 1) % len(self.images)
+            self.image = self.images[self.current_frame]
+            bottom = self.rect.bottom
+            self.rect = self.image.get_rect()
+            self.rect.bottom = bottom
+#mob that moves vertically
+class VerticalMob(Sprite):
+    def __init__(self, game):
+        # allows layering in LayeredUpdates sprite group
+        self._layer = MOB_LAYER
+        # add a groups property where we can pass all instances of this object into game groups
+        self.groups = game.all_sprites, game.mobs
+        Sprite.__init__(self, self.groups)
+        self.game = game
+        self.image_up = self.game.spritesheet.get_image(566, 510, 122, 139)
+        self.image_up.set_colorkey(BLACK)
+        self.image_down = self.game.spritesheet.get_image(692, 1667, 120, 132)
+        self.image_down.set_colorkey(BLACK)
+        self.image = self.image_up
+        self.image.set_colorkey(BLACK)
+        self.rect = self.image.get_rect()
+        self.rect.centerx = choice([-100, HEIGHT + 100])
+        self.rect_top = self.rect.top
+        self.vy = randrange(1, 4)
+        if self.rect.centery > WIDTH:
+            self.vy *= -1
+        self.rect.x = randrange(WIDTH//1.1)
+        self.vx = 0
+        self.dx = 0.5
+    def update(self):
+        self.rect.y += self.vy
+        self.vx += self.dx
+        self.rect_top = self.rect.top
+        if self.vx > 3 or  self.vx < -3:
+            self.dx *= -1
+        center = self.rect.center
+        if self.dx < 0:
+            self.image = self.image_up
+        else:
+            self.image = self.image_down
+        self.rect = self.image.get_rect()
+        self.mask = pg.mask.from_surface(self.image)
+        self.rect.center = center
+        self.rect_top = self.rect.top
+        self.rect.x += self.vx
+        if self.rect.left > WIDTH + 100 or self.rect.right < -100:
+            self.kill()
+#carrots that go up and kill enemies
+class Carrot(Sprite):
+    def __init__(self, game, playerPosX, playerPosY, upgrade=None):
+        self._layer = MOB_LAYER
+        # add a groups property where we can pass all instances of this object into game groups
+        self.groups = game.all_sprites, game.carrots
+        Sprite.__init__(self, self.groups)
+        self.game = game
+        self.type = random.choice(['boost'])
+        self.image = pg.Surface((78,70))
+        self.image = self.game.spritesheet.get_image(820, 1733, 78, 70)
+        self.image.set_colorkey(BLACK)
+        self.rect = self.image.get_rect()
+        self.rect.centerx = playerPosX
+        self.rect.centery = playerPosY + 5
+        self.image = pg.transform.rotate(self.image,randint(0,360))
+    def update(self):
+        self.rect.y += -10
+        self.image = pg.transform.rotate(self.image,0)
+        if self.rect.top > WIDTH + 100:
+            self.kill()
+        
+       
