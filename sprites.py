@@ -31,6 +31,8 @@ class Player(Sprite):
         self.game = game
         self.walking = False
         self.jumping = False
+        self.isDead = False
+        self.deathJump = False
         self.current_frame = 0
         self.last_update = 0
         self.load_images()
@@ -59,6 +61,8 @@ class Player(Sprite):
         for frame in self.walk_frames_r:
             frame.set_colorkey(BLACK)
             self.walk_frames_l.append(pg.transform.flip(frame, True, False))
+        self.death_frame = self.game.spritesheet.get_image(382, 946, 150, 174)
+        self.death_frame.set_colorkey(BLACK)
         self.jump_frame = self.game.spritesheet.get_image(382, 763, 150, 181)
         self.jump_frame.set_colorkey(BLACK)
     def update(self):
@@ -68,10 +72,16 @@ class Player(Sprite):
         # print("vel " + str(self.vel))
 
         keys = pg.key.get_pressed()
-        if keys[pg.K_a]:
-            self.acc.x =  -PLAYER_ACC
-        if keys[pg.K_d]:
-            self.acc.x = PLAYER_ACC
+        if self.isDead:
+            if self.deathJump == False:
+                self.vel.y = 0
+                self.vel.y = -15
+                self.deathJump = True
+        else:
+            if keys[pg.K_a]:
+                self.acc.x =  -PLAYER_ACC
+            if keys[pg.K_d]:
+                self.acc.x = PLAYER_ACC
         # set player friction
         self.acc.x += self.vel.x * PLAYER_FRICTION
         # equations of motion
@@ -109,40 +119,46 @@ class Player(Sprite):
     def animate(self):
         # gets time in miliseconds
         now = pg.time.get_ticks()
-        if self.vel.x != 0:
-            self.walking = True
+        #only does other animations if player is not dead
+        if self.isDead:
+            self.image = self.death_frame
+            self.rect = self.image.get_rect()
+            # self.rect.bottom = bottom
         else:
-            self.walking = False
-        if self.walking:
-            if now - self.last_update > 200:
-                self.last_update = now
-                '''
-                assigns current frame based on the next frame and the remaining frames in the list.
-                If current frame is 'two' in a list with three elements, then:
-                2 + 1 = 3; 3 modulus 3 is zero, setting the animation back to its first frame.
-                If current frame is zero, then:
-                0 + 1 = 1; 1 modulus 3 is 1; 2 modulus 3 is 2; 3 modulus 3 is o
+            if self.vel.x != 0:
+                self.walking = True
+            else:
+                self.walking = False
+            if self.walking:
+                if now - self.last_update > 200:
+                    self.last_update = now
+                    '''
+                    assigns current frame based on the next frame and the remaining frames in the list.
+                    If current frame is 'two' in a list with three elements, then:
+                    2 + 1 = 3; 3 modulus 3 is zero, setting the animation back to its first frame.
+                    If current frame is zero, then:
+                    0 + 1 = 1; 1 modulus 3 is 1; 2 modulus 3 is 2; 3 modulus 3 is o
 
-                '''
-                self.current_frame = (self.current_frame + 1) % len(self.walk_frames_l)
-                bottom = self.rect.bottom
-                if self.vel.x > 0:
-                    self.image = self.walk_frames_r[self.current_frame]
-                else:
-                    self.image = self.walk_frames_l[self.current_frame]
-                self.rect = self.image.get_rect()
-                self.rect.bottom = bottom
-        # checks state
-        if not self.jumping and not self.walking:
-            # gets current delta time and checks against 200 miliseconds
-            if now - self.last_update > 200:
-                self.last_update = now
-                self.current_frame = (self.current_frame + 1) % len(self.standing_frames)
-                # reset bottom for each frame of animation
-                bottom = self.rect.bottom
-                self.image = self.standing_frames[self.current_frame]
-                self.rect = self.image.get_rect()
-                self.rect.bottom = bottom
+                    '''
+                    self.current_frame = (self.current_frame + 1) % len(self.walk_frames_l)
+                    bottom = self.rect.bottom
+                    if self.vel.x > 0:
+                        self.image = self.walk_frames_r[self.current_frame]
+                    else:
+                        self.image = self.walk_frames_l[self.current_frame]
+                    self.rect = self.image.get_rect()
+                    self.rect.bottom = bottom
+            # checks state
+            if not self.jumping and not self.walking:
+                # gets current delta time and checks against 200 miliseconds
+                if now - self.last_update > 200:
+                    self.last_update = now
+                    self.current_frame = (self.current_frame + 1) % len(self.standing_frames)
+                    # reset bottom for each frame of animation
+                    bottom = self.rect.bottom
+                    self.image = self.standing_frames[self.current_frame]
+                    self.rect = self.image.get_rect()
+                    self.rect.bottom = bottom
         # collide will find this property if it is called self.mask
         self.mask = pg.mask.from_surface(self.image)
 class Cloud(Sprite):
@@ -176,20 +192,6 @@ class Platform(Sprite):
         self.groups = game.all_sprites, game.platforms
         Sprite.__init__(self, self.groups)
         self.game = game
-        # self.changeInScore = score + 500
-        # self.imageRotation = 0
-        # self.score = score
-        # images = [self.game.spritesheet.get_image(0, 288, 380, 94), 
-        #           self.game.spritesheet.get_image(213, 1662, 201, 100),                 
-        #           self.game.spritesheet.get_image(0, 768, 380, 94),
-        #           self.game.spritesheet.get_image(213, 1764, 201, 100),
-        #           self.game.spritesheet.get_image(0, 672, 380, 94),
-        #           self.game.spritesheet.get_image(208, 1879, 201, 100),
-        #           self.game.spritesheet.get_image(0, 96, 380, 94),
-        #           self.game.spritesheet.get_image(382, 408, 200, 100),
-        #           self.game.spritesheet.get_image(0, 960, 380, 94),
-        #           self.game.spritesheet.get_image(218, 1558, 200, 100)
-        # ]
         imagesGrass = [self.game.spritesheet.get_image(0, 288, 380, 94), 
                   self.game.spritesheet.get_image(213, 1662, 201, 100),                 
                   ]
@@ -205,11 +207,6 @@ class Platform(Sprite):
         imagesWood = [self.game.spritesheet.get_image(0, 960, 380, 94),
                   self.game.spritesheet.get_image(218, 1558, 200, 100)
                   ]
-        # if changeInScore < score:
-        #     changeInScore = score + 500
-        #     self.imageRotation += 1
-        #     if self.imageRotation >= 4:
-        #         self.imageRotation = 0
         if zone == "grass":
             self.image = random.choice(imagesGrass)
         elif zone == "wood":
@@ -220,10 +217,6 @@ class Platform(Sprite):
             self.image = random.choice(imagesSnow)
         elif zone == "stone":
             self.image = random.choice(imagesStone)
-        # else:
-        #     self.imageRotation = 0
-        #     self.image = random.choice(imagesGrass)
-        # self.image = random.choice(images)
         self.image.set_colorkey(BLACK)
         '''leftovers from random rectangles before images'''
         # self.image = pg.Surface((w,h))
@@ -254,7 +247,7 @@ class Pow(Sprite):
         Sprite.__init__(self, self.groups)
         self.game = game
         self.plat = plat
-        self.type = random.choice(['boost'])
+        self.type = random.choice(['boost', 'shotgun', 'noCooldown'])
         self.image = self.game.spritesheet.get_image(820, 1805, 71, 70)
         self.image.set_colorkey(BLACK)
         self.rect = self.image.get_rect()
@@ -275,16 +268,6 @@ class Deco(Sprite):
         Sprite.__init__(self, self.groups)
         self.game = game
         self.plat = plat
-        # images = [self.game.spritesheet.get_image(868, 1877, 58, 57),
-        #             self.game.spritesheet.get_image(784, 1931, 82, 70),
-        #             self.game.spritesheet.get_image(534, 1063, 58, 57),
-        #             self.game.spritesheet.get_image(801, 752, 82, 70),
-        #             self.game.spritesheet.get_image(707, 134, 117, 160),
-        #             self.game.spritesheet.get_image(814, 1574, 81, 85),
-        #             self.game.spritesheet.get_image(812, 453, 81, 99)
-        #                         ]
-        # for frame in images:
-        #     frame.set_colorkey(BLACK)
         imagesGrass = [self.game.spritesheet.get_image(868, 1877, 58, 57),
                     self.game.spritesheet.get_image(784, 1931, 82, 70),
                     self.game.spritesheet.get_image(623, 2005, 38, 41)
@@ -438,7 +421,6 @@ class Carrot(Sprite):
         self.groups = game.all_sprites, game.carrots
         Sprite.__init__(self, self.groups)
         self.game = game
-        self.type = random.choice(['boost'])
         self.image = pg.Surface((78,70))
         self.image = self.game.spritesheet.get_image(820, 1733, 78, 70)
         self.image.set_colorkey(BLACK)
@@ -446,8 +428,17 @@ class Carrot(Sprite):
         self.rect.centerx = playerPosX
         self.rect.centery = playerPosY + 5
         self.image = pg.transform.rotate(self.image,randint(0,360))
+        self.upgrade = upgrade
+        if self.upgrade == 'shotgun':
+            self.carrotMoveX = randint(-7,7)
+        elif self.upgrade == 'noCooldown':
+            self.carrotMoveX = randint(-3,3)
     def update(self):
         self.rect.y += -10
+        if self.upgrade == 'shotgun':
+            self.rect.x += self.carrotMoveX
+        elif self.upgrade == 'noCooldown':
+            self.rect.x += self.carrotMoveX
         self.image = pg.transform.rotate(self.image,0)
         if self.rect.top > WIDTH + 100:
             self.kill()

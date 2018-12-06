@@ -68,11 +68,15 @@ class Game:
                             pg.mixer.Sound(path.join(self.snd_dir, 'Jump24.wav'))]
         self.boost_sound = pg.mixer.Sound(path.join(self.snd_dir, 'Jump29.wav'))
         self.head_jump_sound = pg.mixer.Sound(path.join(self.snd_dir, 'Jump39.wav'))
+        # self.death_sound = pg.mixer.Sound(path.join(self.snd_dir, 'WSCmeme.wav'))
     def new(self):
         self.score = 0
         self.zone = "grass"
         self.zoneRotation = 0
         self.changeInScore = 2500
+        self.deathAnimation = False
+        self.playerShootCooldown = 0
+        self.playerShootType = 'default'
         # add all sprites to the pg group
         # below no longer needed - using LayeredUpdate group
         # self.all_sprites = pg.sprite.Group()
@@ -89,7 +93,6 @@ class Game:
         self.player = Player(self)
         # add mobs
         self.mobs = pg.sprite.Group()
-        # self.carrotss = Carrot(self, self.player.rect.centerx, self.player.rect.centery)
         #invincibility when boosted so that you wont boost into an enemy and die
         self.boosted = False
         # no longer needed after passing self.groups in Sprites library file
@@ -123,7 +126,7 @@ class Game:
         pg.mixer.music.fadeout(1000)
     def update(self):
         self.all_sprites.update()
-        
+        #sees if the player has enough points to go to the next zone       
         if self.changeInScore < self.score:
             self.changeInScore = self.score + 2500
             print(self.changeInScore)
@@ -157,7 +160,7 @@ class Game:
         mob_hits = pg.sprite.spritecollide(self.player, self.mobs, False, pg.sprite.collide_mask)
         if mob_hits:
             # can use mask collide here if mob count gets too high and creates performance issues
-            if self.player.pos.y - 35 < mob_hits[0].rect_top:
+            if self.player.pos.y - 35 < mob_hits[0].rect_top and self.deathAnimation == False:
                 print("hit top")
                 print("player is " + str(self.player.pos.y))
                 print("mob is " + str(mob_hits[0].rect_top))
@@ -169,12 +172,15 @@ class Game:
                 if self.boosted == False:
                     print("player is " + str(self.player.pos.y))
                     print("mob is " + str(mob_hits[0].rect_top))
-                    self.playing = False
+                    self.deathAnimation = True
+                    self.player.isDead = True
+                    # self.death_sound.play()
+                    # self.playing = False
 
         # check to see if player can jump - if falling
         if self.player.vel.y >= 0:
             hits = pg.sprite.spritecollide(self.player, self.platforms, False)
-            if hits:
+            if hits and self.deathAnimation == False:
                 self.boosted = False
                 # set var to be current hit in list to find which to 'pop' to when two or more collide with player
                 find_lowest = hits[0]
@@ -188,6 +194,7 @@ class Game:
                         self.player.pos.y = find_lowest.rect.top
                         self.player.vel.y = 0
                         self.player.jumping = False
+                        self.boosted = False
                         
 
         # for plat in self.platforms:
@@ -227,6 +234,11 @@ class Game:
                 self.boost_sound.play()
                 self.player.vel.y = -BOOST_POWER
                 self.player.jumping = False
+            if pow.type == 'shotgun':
+                self.playerShootType = 'shotgun'
+            if pow.type == 'noCooldown':
+                self.playerShootType = 'noCooldown'
+                
         #kills enemies if they touch carrots
         if pg.sprite.groupcollide(self.mobs,self.carrots,True,True):
             self.score += 25
@@ -268,9 +280,22 @@ class Game:
                         """ # cuts the jump short if the space bar is released """
                         self.player.jump_cut()
                 if event.type == pg.KEYDOWN:
-                    if event.key == pg.K_SPACE:
-                        Carrot(self, self.player.rect.centerx, self.player.rect.centery)
-                        self.carrots.update()
+                    now = pg.time.get_ticks()     
+                    if event.key == pg.K_SPACE and self.deathAnimation == False:
+                        if self.playerShootType == 'shotgun':
+                            if now - self.playerShootCooldown > 1000:
+                                self.playerShootCooldown = now
+                                for i in range(5):
+                                    Carrot(self, self.player.rect.centerx, self.player.rect.centery, 'shotgun')
+                                    self.carrots.update()
+                        elif self.playerShootType == 'noCooldown':
+                                    Carrot(self, self.player.rect.centerx, self.player.rect.centery, 'noCooldown')
+                                    self.carrots.update()
+                        else:
+                            if now - self.playerShootCooldown > 250:
+                                self.playerShootCooldown = now
+                                Carrot(self, self.player.rect.centerx, self.player.rect.centery, 'default')
+                                self.carrots.update()
                         # self.head_jump_sound.play()
     def draw(self):
         self.screen.fill(SKY_BLUE)
