@@ -169,60 +169,61 @@ class Cloud(Sprite):
         if self.rect.x > WIDTH:
             self.rect.x = -self.rect.width
 class Platform(Sprite):
-    def __init__(self, game, x, y):
+    def __init__(self, game, zone, x, y):
         # allows layering in LayeredUpdates sprite group
         self._layer = PLATFORM_LAYER
         # add Platforms to game groups when instantiated
         self.groups = game.all_sprites, game.platforms
         Sprite.__init__(self, self.groups)
         self.game = game
-        # changeInScore = score + 500
+        # self.changeInScore = score + 500
         # self.imageRotation = 0
-        images = [self.game.spritesheet.get_image(0, 288, 380, 94), 
-                  self.game.spritesheet.get_image(213, 1662, 201, 100),                 
-                  self.game.spritesheet.get_image(0, 768, 380, 94),
-                  self.game.spritesheet.get_image(213, 1764, 201, 100),
-                  self.game.spritesheet.get_image(0, 672, 380, 94),
-                  self.game.spritesheet.get_image(208, 1879, 201, 100),
-                  self.game.spritesheet.get_image(0, 96, 380, 94),
-                  self.game.spritesheet.get_image(382, 408, 200, 100),
-                  self.game.spritesheet.get_image(0, 960, 380, 94),
-                  self.game.spritesheet.get_image(218, 1558, 200, 100)
-        ]
-        # imagesGrass = [self.game.spritesheet.get_image(0, 288, 380, 94), 
+        # self.score = score
+        # images = [self.game.spritesheet.get_image(0, 288, 380, 94), 
         #           self.game.spritesheet.get_image(213, 1662, 201, 100),                 
-        #           ]
-        # imagesSnow = [self.game.spritesheet.get_image(0, 768, 380, 94),
+        #           self.game.spritesheet.get_image(0, 768, 380, 94),
         #           self.game.spritesheet.get_image(213, 1764, 201, 100),
-        #           ]
-        # imagesSand = [self.game.spritesheet.get_image(0, 672, 380, 94),
+        #           self.game.spritesheet.get_image(0, 672, 380, 94),
         #           self.game.spritesheet.get_image(208, 1879, 201, 100),
-        #           ]
-        # imagesStone = [self.game.spritesheet.get_image(0, 96, 380, 94),
+        #           self.game.spritesheet.get_image(0, 96, 380, 94),
         #           self.game.spritesheet.get_image(382, 408, 200, 100),
-        #           ]
-        # imagesWood = [self.game.spritesheet.get_image(0, 960, 380, 94),
+        #           self.game.spritesheet.get_image(0, 960, 380, 94),
         #           self.game.spritesheet.get_image(218, 1558, 200, 100)
-        #           ]
+        # ]
+        imagesGrass = [self.game.spritesheet.get_image(0, 288, 380, 94), 
+                  self.game.spritesheet.get_image(213, 1662, 201, 100),                 
+                  ]
+        imagesSnow = [self.game.spritesheet.get_image(0, 768, 380, 94),
+                  self.game.spritesheet.get_image(213, 1764, 201, 100),
+                  ]
+        imagesSand = [self.game.spritesheet.get_image(0, 672, 380, 94),
+                  self.game.spritesheet.get_image(208, 1879, 201, 100),
+                  ]
+        imagesStone = [self.game.spritesheet.get_image(0, 96, 380, 94),
+                  self.game.spritesheet.get_image(382, 408, 200, 100),
+                  ]
+        imagesWood = [self.game.spritesheet.get_image(0, 960, 380, 94),
+                  self.game.spritesheet.get_image(218, 1558, 200, 100)
+                  ]
         # if changeInScore < score:
         #     changeInScore = score + 500
         #     self.imageRotation += 1
         #     if self.imageRotation >= 4:
         #         self.imageRotation = 0
-        # if platType == "grass":
-        #     self.image = random.choice(imagesGrass)
-        # elif platType == "wood":
-        #     self.image = random.choice(imagesWood)
-        # elif platType == "sand":
-        #     self.image = random.choice(imagesSand)
-        # elif platType == "snow":
-        #     self.image = random.choice(imagesSnow)
-        # elif platType == "stone":
-        #     self.image = random.choice(imagesStone)
+        if zone == "grass":
+            self.image = random.choice(imagesGrass)
+        elif zone == "wood":
+            self.image = random.choice(imagesWood)
+        elif zone == "sand":
+            self.image = random.choice(imagesSand)
+        elif zone == "snow":
+            self.image = random.choice(imagesSnow)
+        elif zone == "stone":
+            self.image = random.choice(imagesStone)
         # else:
         #     self.imageRotation = 0
         #     self.image = random.choice(imagesGrass)
-        self.image = random.choice(images)
+        # self.image = random.choice(images)
         self.image.set_colorkey(BLACK)
         '''leftovers from random rectangles before images'''
         # self.image = pg.Surface((w,h))
@@ -233,14 +234,16 @@ class Platform(Sprite):
         if random.randrange(100) < POW_SPAWN_PCT:
             Pow(self.game, self)
         if random.randrange(100) < 75:
-            Deco(self.game, self)
-        self.decaytime = 100000
-    def platDecay(self):
-        while self.decaytime > 0:
-            self.decaytime += -1
-            # print(self.decaytime)
-        self.kill()
-        self.decaytime = 100000
+            Deco(self.game, self, zone)
+            if random.randrange(100) < 75:
+                Deco(self.game, self, zone)
+    #     self.decaytime = 100000
+    # def platDecay(self):
+    #     while self.decaytime > 0:
+    #         self.decaytime += -1
+    #         # print(self.decaytime)
+    #     self.kill()
+    #     self.decaytime = 100000
 
 class Pow(Sprite):
     def __init__(self, game, plat):
@@ -264,7 +267,7 @@ class Pow(Sprite):
             self.kill()
 #decoration class for visuals 
 class Deco(Sprite):
-    def __init__(self, game, plat):
+    def __init__(self, game, plat, zone):
         # allows layering in LayeredUpdates sprite group
         self._layer = CLOUD_LAYER
         # add a groups property where we can pass all instances of this object into game groups
@@ -272,17 +275,47 @@ class Deco(Sprite):
         Sprite.__init__(self, self.groups)
         self.game = game
         self.plat = plat
-        images = [self.game.spritesheet.get_image(868, 1877, 58, 57),
+        # images = [self.game.spritesheet.get_image(868, 1877, 58, 57),
+        #             self.game.spritesheet.get_image(784, 1931, 82, 70),
+        #             self.game.spritesheet.get_image(534, 1063, 58, 57),
+        #             self.game.spritesheet.get_image(801, 752, 82, 70),
+        #             self.game.spritesheet.get_image(707, 134, 117, 160),
+        #             self.game.spritesheet.get_image(814, 1574, 81, 85),
+        #             self.game.spritesheet.get_image(812, 453, 81, 99)
+        #                         ]
+        # for frame in images:
+        #     frame.set_colorkey(BLACK)
+        imagesGrass = [self.game.spritesheet.get_image(868, 1877, 58, 57),
                     self.game.spritesheet.get_image(784, 1931, 82, 70),
+                    self.game.spritesheet.get_image(623, 2005, 38, 41)
+                                ]
+        imagesWood = [self.game.spritesheet.get_image(534, 1063, 58, 57),
+                    self.game.spritesheet.get_image(801, 752, 82, 70),
+                    ]
+        imagesSand = [self.game.spritesheet.get_image(707, 134, 117, 160),
                     self.game.spritesheet.get_image(534, 1063, 58, 57),
                     self.game.spritesheet.get_image(801, 752, 82, 70),
-                    self.game.spritesheet.get_image(707, 134, 117, 160),
+                    self.game.spritesheet.get_image(623, 2005, 38, 41)
+                    ]
+        imagesSnow = [self.game.spritesheet.get_image(623, 2005, 38, 41),
                     self.game.spritesheet.get_image(814, 1574, 81, 85),
                     self.game.spritesheet.get_image(812, 453, 81, 99)
-                                ]
-        for frame in images:
-            frame.set_colorkey(BLACK)
-        self.image = random.choice(images)
+                    ]
+        imagesStone = [self.game.spritesheet.get_image(814, 1574, 81, 85),
+                    self.game.spritesheet.get_image(812, 453, 81, 99),
+                    self.game.spritesheet.get_image(623, 2005, 38, 41)
+                    ]
+        if zone == "grass":
+            self.image = random.choice(imagesGrass)
+        elif zone == "wood":
+            self.image = random.choice(imagesWood)
+        elif zone == "sand":
+            self.image = random.choice(imagesSand)
+        elif zone == "snow":
+            self.image = random.choice(imagesSnow)
+        elif zone == "stone":
+            self.image = random.choice(imagesStone)
+        # self.image = random.choice(images)
         self.image.set_colorkey(BLACK)
         self.rect = self.image.get_rect()
         self.rect.centerx = self.plat.rect.centerx - randint(-(self.plat.rect.width)/2,self.plat.rect.width/2)
@@ -355,7 +388,7 @@ class Mob(Sprite):
             self.rect.bottom = bottom
 #mob that moves vertically
 class VerticalMob(Sprite):
-    def __init__(self, game):
+    def __init__(self, game, playerX):
         # allows layering in LayeredUpdates sprite group
         self._layer = MOB_LAYER
         # add a groups property where we can pass all instances of this object into game groups
@@ -377,6 +410,8 @@ class VerticalMob(Sprite):
         self.rect.x = randrange(WIDTH//1.1)
         self.vx = 0
         self.dx = 0.5
+        if self.rect.x < playerX + 175 and self.rect.x > playerX - 175:
+            self.kill()
     def update(self):
         self.rect.y += self.vy
         self.vx += self.dx

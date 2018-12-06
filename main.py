@@ -70,6 +70,9 @@ class Game:
         self.head_jump_sound = pg.mixer.Sound(path.join(self.snd_dir, 'Jump39.wav'))
     def new(self):
         self.score = 0
+        self.zone = "grass"
+        self.zoneRotation = 0
+        self.changeInScore = 2500
         # add all sprites to the pg group
         # below no longer needed - using LayeredUpdate group
         # self.all_sprites = pg.sprite.Group()
@@ -95,7 +98,7 @@ class Game:
         for plat in PLATFORM_LIST:
             # no longer need to assign to variable because we're passing self.groups in Sprite library
             # self.p = Platform(self, *plat)
-            Platform(self, *plat)
+            Platform(self, self.zone, *plat)
             # no longer needed because we pass in Sprite lib file
             # self.all_sprites.add(p)
             # self.platforms.add(p)
@@ -121,6 +124,24 @@ class Game:
     def update(self):
         self.all_sprites.update()
         
+        if self.changeInScore < self.score:
+            self.changeInScore = self.score + 2500
+            print(self.changeInScore)
+            self.zoneRotation += 1
+            if self.zoneRotation == 0:
+                self.zone = "grass"
+            elif self.zoneRotation == 1:
+                self.zone = "wood"
+            elif self.zoneRotation == 2:
+                self.zone = "sand"
+            elif self.zoneRotation == 3:
+                self.zone = "stone"
+            elif self.zoneRotation == 4:
+                self.zone = "snow"
+            if self.zoneRotation >= 5:
+                self.zoneRotation = 0
+                self.zone = "grass"
+
         # shall we spawn a mob?
         now = pg.time.get_ticks()
         if now - self.mob_timer > 2000 + random.choice([-1000, -500, 0, 500, 1000]):
@@ -129,7 +150,7 @@ class Game:
             if randint(0,1) == 0:
                 Mob(self)
             else:
-                VerticalMob(self)
+                VerticalMob(self, self.player.pos.x)
         ##### check for mob collisions ######
         # now using collision mask to determine collisions
         # can use rectangle collisions here first if we encounter performance issues
@@ -154,7 +175,7 @@ class Game:
         if self.player.vel.y >= 0:
             hits = pg.sprite.spritecollide(self.player, self.platforms, False)
             if hits:
-                # self.boosted = False
+                self.boosted = False
                 # set var to be current hit in list to find which to 'pop' to when two or more collide with player
                 find_lowest = hits[0]
                 for hit in hits:
@@ -229,7 +250,7 @@ class Game:
             # p = Platform(self, random.randrange(0,WIDTH-width), 
             #                 random.randrange(-75, -30))
             
-            Platform(self, random.randrange(0,WIDTH-width), 
+            Platform(self, self.zone, random.randrange(0,WIDTH-width), 
                             random.randrange(-75, -30)) 
             # self.platforms.add(p)
             # self.all_sprites.add(p)
