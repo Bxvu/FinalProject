@@ -73,10 +73,11 @@ class Game:
         self.score = 0
         self.zone = "grass"
         self.zoneRotation = 0
-        self.changeInScore = 2500
+        self.changeInScore = 3000
         self.deathAnimation = False
         self.playerShootCooldown = 0
-        self.playerShootType = 'default'
+        self.playerShootCarrotAmount = 1
+        self.timeSincePlayerShot = 0
         # add all sprites to the pg group
         # below no longer needed - using LayeredUpdate group
         # self.all_sprites = pg.sprite.Group()
@@ -88,7 +89,9 @@ class Game:
         # add powerups
         self.powerups = pg.sprite.Group()
         self.carrots = pg.sprite.Group()
+        self.mobAttacks = pg.sprite.Group()
         self.mob_timer = 0
+        self.plat_timer = 0
         # add a player 1 to the group
         self.player = Player(self)
         # add mobs
@@ -128,7 +131,7 @@ class Game:
         self.all_sprites.update()
         #sees if the player has enough points to go to the next zone       
         if self.changeInScore < self.score:
-            self.changeInScore = self.score + 2500
+            self.changeInScore = self.score + 3000
             print(self.changeInScore)
             self.zoneRotation += 1
             if self.zoneRotation == 0:
@@ -151,16 +154,16 @@ class Game:
             self.mob_timer = now
             #random choice between spawning mobs
             if randint(0,1) == 0:
-                Mob(self)
+                Mob(self, self.score)
             else:
-                VerticalMob(self, self.player.pos.x)
+                VerticalMob(self, self.player.pos.x, self.score)
         ##### check for mob collisions ######
         # now using collision mask to determine collisions
         # can use rectangle collisions here first if we encounter performance issues
         mob_hits = pg.sprite.spritecollide(self.player, self.mobs, False, pg.sprite.collide_mask)
         if mob_hits:
             # can use mask collide here if mob count gets too high and creates performance issues
-            if self.player.pos.y - 35 < mob_hits[0].rect_top and self.deathAnimation == False:
+            if self.player.pos.y - 35 < mob_hits[0].rect_top and self.deathAnimation == False and self.boosted == False:
                 print("hit top")
                 print("player is " + str(self.player.pos.y))
                 print("mob is " + str(mob_hits[0].rect_top))
@@ -172,6 +175,14 @@ class Game:
                 if self.boosted == False:
                     print("player is " + str(self.player.pos.y))
                     print("mob is " + str(mob_hits[0].rect_top))
+                    self.deathAnimation = True
+                    self.player.isDead = True
+                    # self.death_sound.play()
+                    # self.playing = False
+        mobAttack_hits = pg.sprite.spritecollide(self.player, self.mobAttacks, False, pg.sprite.collide_mask)
+        if mobAttack_hits:
+        #         #only kills player if they are not boosted
+                if self.boosted == False:
                     self.deathAnimation = True
                     self.player.isDead = True
                     # self.death_sound.play()
@@ -195,15 +206,6 @@ class Game:
                         self.player.vel.y = 0
                         self.player.jumping = False
                         self.boosted = False
-                        
-
-        # for plat in self.platforms:
-        #     if pg.sprite.spritecollide(self.player, self.platforms, False):
-        #             plat.platDecay()
-        #             # self.p.platDecay()
-        #             print("touching platform")
-
-                    
                 
         # if player reaches top 1/4 of screen...
         if self.player.rect.top <= HEIGHT / 4:
@@ -220,6 +222,10 @@ class Game:
             for mob in self.mobs:
                 # creates slight scroll based on player y velocity
                 mob.rect.y += max(abs(self.player.vel.y), 2)
+            for mobAttack in self.mobAttacks:
+                mobAttack.rect.y += max(abs(self.player.vel.y), 2)
+            for carrots in self.carrots:
+                carrots.rect.y += max(abs(self.player.vel.y), 2)
             for plat in self.platforms:
                 # creates slight scroll based on player y velocity
                 plat.rect.y += max(abs(self.player.vel.y), 2)
@@ -229,41 +235,59 @@ class Game:
         # if player hits a power up
         pow_hits = pg.sprite.spritecollide(self.player, self.powerups, True)
         for pow in pow_hits:
-            if pow.type == 'boost':
-                self.boosted = True
-                self.boost_sound.play()
-                self.player.vel.y = -BOOST_POWER
-                self.player.jumping = False
-            if pow.type == 'shotgun':
-                self.playerShootType = 'shotgun'
-            if pow.type == 'noCooldown':
-                self.playerShootType = 'noCooldown'
+            if self.boosted == False:
+                if pow.type == 'boost':
+                    self.boosted = True
+                    self.boost_sound.play()
+                    self.player.vel.y = -BOOST_POWER
+                    self.player.jumping = False
+                if pow.type == 'carrotsUpgrade':
+                    if self.playerShootCarrotAmount < 10:
+                        self.playerShootCarrotAmount += 1  
+                        self.playerShootCooldown += 75   
+                    else:
+                        self.playerShootCarrotAmount = 10
+                        self.score += 15 
                 
         #kills enemies if they touch carrots
         if pg.sprite.groupcollide(self.mobs,self.carrots,True,True):
-            self.score += 25
+            self.score += 100
+        if pg.sprite.groupcollide(self.mobAttacks,self.carrots,True,True):
+            self.score += 10
 
         # Die!
-        if self.player.rect.bottom > HEIGHT:
+        # if self.player.rect.bottom > HEIGHT:
             '''make all sprites fall up when player falls'''
-            for sprite in self.all_sprites:
-                sprite.rect.y -= max(self.player.vel.y, 10)
-                '''get rid of sprites as they fall up'''
-                if sprite.rect.bottom < -25:
-                    sprite.kill()
-        if len(self.platforms) == 0:
-            self.playing = False
+            # for sprite in self.all_sprites:
+            #     sprite.rect.y -= max(self.player.vel.y, 10)
+            #     '''get rid of sprites as they fall up'''
+            #     if sprite.rect.bottom < -25:
+            #         sprite.kill()
+        #only kills the player if they have less than 3 carrots
+        if self.player.pos.y > HEIGHT + 300:
+            if self.playerShootCarrotAmount >= 3:
+                self.playerShootCarrotAmount -= 3
+                self.playerShootCooldown -= 225
+                self.deathAnimation = False
+                self.player.isDead = False
+                self.player.vel.y = 0
+                self.boosted = True
+                self.player.vel.y = -BOOST_POWER
+            else:
+                self.playing = False
+
         # generate new random platforms
-        
-        while len(self.platforms) < 15:
+        platformAmount = 15 - self.score/750
+        if platformAmount < 5:
+            platformAmount = 5
+        while len(self.platforms) < platformAmount:
             width = random.randrange(50, WIDTH-50)
             ''' removed widths and height params to allow for sprites '''
             """ changed due to passing into groups through sprites lib file """
             # p = Platform(self, random.randrange(0,WIDTH-width), 
             #                 random.randrange(-75, -30))
-            
             Platform(self, self.zone, random.randrange(0,WIDTH-width), 
-                            random.randrange(-75, -30)) 
+                                random.randrange(-75, -30)) 
             # self.platforms.add(p)
             # self.all_sprites.add(p)
     def events(self):
@@ -282,27 +306,18 @@ class Game:
                 if event.type == pg.KEYDOWN:
                     now = pg.time.get_ticks()     
                     if event.key == pg.K_SPACE and self.deathAnimation == False:
-                        if self.playerShootType == 'shotgun':
-                            if now - self.playerShootCooldown > 1000:
-                                self.playerShootCooldown = now
-                                for i in range(5):
-                                    Carrot(self, self.player.rect.centerx, self.player.rect.centery, 'shotgun')
-                                    self.carrots.update()
-                        elif self.playerShootType == 'noCooldown':
-                                    Carrot(self, self.player.rect.centerx, self.player.rect.centery, 'noCooldown')
-                                    self.carrots.update()
-                        else:
-                            if now - self.playerShootCooldown > 250:
-                                self.playerShootCooldown = now
-                                Carrot(self, self.player.rect.centerx, self.player.rect.centery, 'default')
-                                self.carrots.update()
+                        if now - self.timeSincePlayerShot > self.playerShootCooldown:
+                            self.timeSincePlayerShot = now
+                            for i in range(self.playerShootCarrotAmount):
+                                Carrot(self, self.player.rect.centerx, self.player.rect.centery, self.playerShootCarrotAmount)
                         # self.head_jump_sound.play()
     def draw(self):
         self.screen.fill(SKY_BLUE)
         self.all_sprites.draw(self.screen)
         """ # not needed now that we're using LayeredUpdates """
         # self.screen.blit(self.player.image, self.player.rect)
-        self.draw_text(str(self.score), 22, WHITE, WIDTH / 2, 15)
+        self.draw_text("Score: " + str(self.score), 22, BLACK, WIDTH / 2, 15)
+        self.draw_text("Carrots: " + str(self.playerShootCarrotAmount), 22, BLACK, WIDTH / 2, 40)
         # double buffering - renders a frame "behind" the displayed frame
         pg.display.flip()
     def wait_for_key(self): 

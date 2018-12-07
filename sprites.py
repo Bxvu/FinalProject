@@ -230,13 +230,6 @@ class Platform(Sprite):
             Deco(self.game, self, zone)
             if random.randrange(100) < 75:
                 Deco(self.game, self, zone)
-    #     self.decaytime = 100000
-    # def platDecay(self):
-    #     while self.decaytime > 0:
-    #         self.decaytime += -1
-    #         # print(self.decaytime)
-    #     self.kill()
-    #     self.decaytime = 100000
 
 class Pow(Sprite):
     def __init__(self, game, plat):
@@ -247,8 +240,16 @@ class Pow(Sprite):
         Sprite.__init__(self, self.groups)
         self.game = game
         self.plat = plat
-        self.type = random.choice(['boost', 'shotgun', 'noCooldown'])
-        self.image = self.game.spritesheet.get_image(820, 1805, 71, 70)
+        self.type = random.choice(['boost', 'carrotsUpgrade'])
+        self.powerIcons = [self.game.spritesheet.get_image(820, 1805, 71, 70),
+                    self.game.spritesheet.get_image(812, 554, 54, 49)
+                    ]
+        if self.type == 'boost':
+            self.image = self.powerIcons[0]
+        elif self.type == 'carrotsUpgrade':
+            self.image = self.powerIcons[1]
+        else:
+            self.image = self.powerIcons[0]
         self.image.set_colorkey(BLACK)
         self.rect = self.image.get_rect()
         self.rect.centerx = self.plat.rect.centerx
@@ -310,7 +311,7 @@ class Deco(Sprite):
             self.kill()
 #mob that moves horizontally
 class Mob(Sprite):
-    def __init__(self, game):
+    def __init__(self, game, score):
         # allows layering in LayeredUpdates sprite group
         self._layer = MOB_LAYER
         # add a groups property where we can pass all instances of this object into game groups
@@ -331,11 +332,18 @@ class Mob(Sprite):
         self.vy = 0
         self.dy = 0.5
         self.current_frame = 0
+        self.attackTimer = 0
+        self.attackTimerCooldown = 2000 - score/10
+        if self.attackTimerCooldown < 500:
+            self.attackTimerCooldown = 500
+        self.flyRange = 5 + score/2500
+        if self.flyRange > 10:
+            self.flyRange = 10
     def update(self):
         self.rect.x += self.vx
         self.vy += self.dy
         self.rect_top = self.rect.top
-        if self.vy > 5 or  self.vy < -5:
+        if self.vy > self.flyRange or  self.vy < -self.flyRange:
             self.dy *= -1
         center = self.rect.center
         if self.dy < 0:
@@ -349,6 +357,10 @@ class Mob(Sprite):
         self.rect.y += self.vy
         if self.rect.left > WIDTH + 100 or self.rect.right < -100:
             self.kill()
+        now = pg.time.get_ticks()
+        if now - self.attackTimer > self.attackTimerCooldown:
+            self.attackTimer = now
+            MobAttack(self.game, self)
     def load_images(self):
         self.images = [self.game.spritesheet.get_image(382, 635, 174, 126),
                     self.game.spritesheet.get_image(0, 1879, 206, 107),
@@ -369,9 +381,29 @@ class Mob(Sprite):
             bottom = self.rect.bottom
             self.rect = self.image.get_rect()
             self.rect.bottom = bottom
+#attack for horizontal mob
+class MobAttack(Sprite):
+    def __init__(self, game, mob):
+        # allows layering in LayeredUpdates sprite group
+        self._layer = MOB_LAYER
+        # add a groups property where we can pass all instances of this object into game groups
+        self.groups = game.all_sprites, game.mobAttacks
+        Sprite.__init__(self, self.groups)
+        self.game = game
+        self.mob = mob
+        self.image = self.game.spritesheet.get_image(894, 206, 51, 87)
+        self.image.set_colorkey(BLACK)
+        self.rect = self.image.get_rect()
+        self.rect.centerx = self.mob.rect.centerx
+        self.rect.bottom = self.mob.rect.bottom + 5
+    def update(self):
+        if self.rect.top > HEIGHT + 40:
+            self.kill()
+        else:
+            self.rect.y += 10
 #mob that moves vertically
 class VerticalMob(Sprite):
-    def __init__(self, game, playerX):
+    def __init__(self, game, playerX, score):
         # allows layering in LayeredUpdates sprite group
         self._layer = MOB_LAYER
         # add a groups property where we can pass all instances of this object into game groups
@@ -388,18 +420,25 @@ class VerticalMob(Sprite):
         self.rect.centerx = choice([-100, HEIGHT + 100])
         self.rect_top = self.rect.top
         self.vy = randrange(1, 4)
-        if self.rect.centery > WIDTH:
+        if self.rect.centery > HEIGHT:
             self.vy *= -1
         self.rect.x = randrange(WIDTH//1.1)
         self.vx = 0
         self.dx = 0.5
         if self.rect.x < playerX + 175 and self.rect.x > playerX - 175:
             self.kill()
+        self.attackTimer = 0
+        self.attackTimerCooldown = 2000 - score/10
+        if self.attackTimerCooldown < 500:
+            self.attackTimerCooldown = 500
+        self.flyRange = 3 + score/2500
+        if self.flyRange > 10:
+            self.flyRange = 10
     def update(self):
         self.rect.y += self.vy
         self.vx += self.dx
         self.rect_top = self.rect.top
-        if self.vx > 3 or  self.vx < -3:
+        if self.vx > self.flyRange or  self.vx < -self.flyRange:
             self.dx *= -1
         center = self.rect.center
         if self.dx < 0:
@@ -413,9 +452,43 @@ class VerticalMob(Sprite):
         self.rect.x += self.vx
         if self.rect.left > WIDTH + 100 or self.rect.right < -100:
             self.kill()
+        now = pg.time.get_ticks()
+        if now - self.attackTimer > self.attackTimerCooldown:
+            self.attackTimer = now
+            VerticalMobAttack(self.game, self)
+            
+#attack for Vertical mob
+class VerticalMobAttack(Sprite):
+    def __init__(self, game, mob):
+        # allows layering in LayeredUpdates sprite group
+        self._layer = MOB_LAYER
+        # add a groups property where we can pass all instances of this object into game groups
+        self.groups = game.all_sprites, game.mobAttacks
+        Sprite.__init__(self, self.groups)
+        self.game = game
+        self.mob = mob
+        self.image = self.game.spritesheet.get_image(894, 206, 51, 87)
+        self.image.set_colorkey(BLACK)
+        self.image = pg.transform.rotate(self.image, 90)
+        if randint(0,1) == 1:
+            self.direction = "left"
+            self.image =  pg.transform.flip(self.image, True, False )
+        else:
+            self.direction = "right" 
+        self.rect = self.image.get_rect()
+        self.rect.centerx = self.mob.rect.centerx
+        self.rect.bottom = self.mob.rect.bottom + 5
+    def update(self):
+        if self.rect.left > WIDTH + 100 or self.rect.right < -100:
+            self.kill()
+        else:
+            if self.direction == "right":
+                self.rect.x += 10
+            else:
+                self.rect.x -= 10
 #carrots that go up and kill enemies
 class Carrot(Sprite):
-    def __init__(self, game, playerPosX, playerPosY, upgrade=None):
+    def __init__(self, game, playerPosX, playerPosY, carrotAmount):
         self._layer = MOB_LAYER
         # add a groups property where we can pass all instances of this object into game groups
         self.groups = game.all_sprites, game.carrots
@@ -428,19 +501,24 @@ class Carrot(Sprite):
         self.rect.centerx = playerPosX
         self.rect.centery = playerPosY + 5
         self.image = pg.transform.rotate(self.image,randint(0,360))
-        self.upgrade = upgrade
-        if self.upgrade == 'shotgun':
-            self.carrotMoveX = randint(-7,7)
-        elif self.upgrade == 'noCooldown':
+        self.carrotAmount = carrotAmount
+        if self.carrotAmount == 1:
+            self.carrotMoveX = randint(0,0) 
+            self.carrotMoveY = 10     
+        elif self.carrotAmount > 1:
             self.carrotMoveX = randint(-3,3)
+            self.carrotMoveY = randint(8,12)        
+        elif self.carrotAmount > 5:
+            self.carrotMoveX = randint(-12,12)
+            self.carrotMoveY = randint(6,14) 
+        elif self.carrotAmount > 7:
+            self.carrotMoveX = randint(-30,30)
+            self.carrotMoveY = randint(4,16) 
     def update(self):
-        self.rect.y += -10
-        if self.upgrade == 'shotgun':
-            self.rect.x += self.carrotMoveX
-        elif self.upgrade == 'noCooldown':
-            self.rect.x += self.carrotMoveX
+        self.rect.y += -self.carrotMoveY
+        self.rect.x += self.carrotMoveX
         self.image = pg.transform.rotate(self.image,0)
-        if self.rect.top > WIDTH + 100:
+        if self.rect.top < -40:
             self.kill()
         
        

@@ -21,7 +21,7 @@ PLAYER_GRAV = 0.8
 PLAYER_JUMP = 25
 # game settings
 BOOST_POWER = 60
-POW_SPAWN_PCT = 6
+POW_SPAWN_PCT = 8
 MOB_FREQ = 500
 # layers - uses numerical value in layered sprites
 PLAYER_LAYER = 2
