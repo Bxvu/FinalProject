@@ -11,7 +11,6 @@ REDDISH = (240,55,66)
 SKY_BLUE = (143, 185, 252)
 FONT_NAME = 'arial'
 SPRITESHEET = "spritesheet_jumper.png"
-SPRITESHEET2 = "spritesheet.png"
 # data files
 HS_FILE = "highscore.txt"
 # player settings
@@ -26,7 +25,7 @@ MOB_FREQ = 500
 # layers - uses numerical value in layered sprites
 PLAYER_LAYER = 2
 PLATFORM_LAYER = 1
-POW_LAYER = 1
+POW_LAYER = 3
 MOB_LAYER = 2
 CLOUD_LAYER = 0
 
@@ -39,11 +38,18 @@ PLATFORM_LIST = [(0, HEIGHT - 40, WIDTH, 40),
                  (200, HEIGHT - 150, WIDTH-350, 40),
                  (200, HEIGHT - 450, WIDTH-350, 40)]
 '''
-PLATFORM_LIST = [(0, HEIGHT - 40),
-                 (WIDTH/2, HEIGHT - 300),
+PLATFORM_LIST = [(25, HEIGHT - 40),
+                 (WIDTH/2, HEIGHT - 200),
                  (20, HEIGHT - 350),
                  (500, HEIGHT - 150),
-                 (800, HEIGHT - 450)]
+                 (800, HEIGHT - 450),
+                 (-20, HEIGHT - 350),
+                 (-500, HEIGHT - 150),
+                 (-10, HEIGHT - 550),
+                 (500, HEIGHT - 150),
+                 (60, HEIGHT - 300),
+                 (530, HEIGHT - 250),
+                 ]
 # PLATFORM_LIST = [(0, HEIGHT - 40),
 #                  (65, HEIGHT - 300),
 #                  (20, HEIGHT - 350),

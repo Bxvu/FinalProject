@@ -90,16 +90,18 @@ class Game:
         self.powerups = pg.sprite.Group()
         self.carrots = pg.sprite.Group()
         self.mobAttacks = pg.sprite.Group()
+        self.shield = pg.sprite.Group()
         self.mob_timer = 0
         self.plat_timer = 0
         # add a player 1 to the group
         self.player = Player(self)
+        # self.shield = Shield(self,self.player)
         # add mobs
         self.mobs = pg.sprite.Group()
         #invincibility when boosted so that you wont boost into an enemy and die
         self.boosted = False
         # no longer needed after passing self.groups in Sprites library file
-        # self.all_sprites.add(self.player)
+        # self.all_sprites.add(self.player)        
         # instantiate new platform 
         for plat in PLATFORM_LIST:
             # no longer need to assign to variable because we're passing self.groups in Sprite library
@@ -186,7 +188,7 @@ class Game:
                     self.deathAnimation = True
                     self.player.isDead = True
                     # self.death_sound.play()
-                    # self.playing = False
+                    # self.playing = False        
 
         # check to see if player can jump - if falling
         if self.player.vel.y >= 0:
@@ -233,36 +235,33 @@ class Game:
                     plat.kill()
                     self.score += 10
         # if player hits a power up
-        pow_hits = pg.sprite.spritecollide(self.player, self.powerups, True)
-        for pow in pow_hits:
-            if self.boosted == False:
-                if pow.type == 'boost':
-                    self.boosted = True
-                    self.boost_sound.play()
-                    self.player.vel.y = -BOOST_POWER
-                    self.player.jumping = False
-                if pow.type == 'carrotsUpgrade':
-                    if self.playerShootCarrotAmount < 10:
-                        self.playerShootCarrotAmount += 1  
-                        self.playerShootCooldown += 75   
-                    else:
-                        self.playerShootCarrotAmount = 10
-                        self.score += 15 
+        if self.boosted == False:
+            pow_hits = pg.sprite.spritecollide(self.player, self.powerups, True)
+            for pow in pow_hits:
+                    if pow.type == 'boost':
+                        self.boosted = True
+                        self.boost_sound.play()
+                        self.player.vel.y = -BOOST_POWER
+                        self.player.jumping = False
+                    if pow.type == 'shield':
+                        if len(self.shield) < 1:
+                            Shield(self, self.player)
+                    if pow.type == 'carrotsUpgrade':
+                        if self.playerShootCarrotAmount < 10:
+                            self.playerShootCarrotAmount += 1  
+                            self.playerShootCooldown += 75   
+                        else:
+                            self.playerShootCarrotAmount = 10
+                            self.score += 15 
                 
-        #kills enemies if they touch carrots
+        #kills enemies if they touch carrots or shield
         if pg.sprite.groupcollide(self.mobs,self.carrots,True,True):
             self.score += 100
         if pg.sprite.groupcollide(self.mobAttacks,self.carrots,True,True):
             self.score += 10
-
-        # Die!
-        # if self.player.rect.bottom > HEIGHT:
-            '''make all sprites fall up when player falls'''
-            # for sprite in self.all_sprites:
-            #     sprite.rect.y -= max(self.player.vel.y, 10)
-            #     '''get rid of sprites as they fall up'''
-            #     if sprite.rect.bottom < -25:
-            #         sprite.kill()
+        if pg.sprite.groupcollide(self.shield,self.mobAttacks, True, True):
+            self.score += 10
+        
         #only kills the player if they have less than 3 carrots
         if self.player.pos.y > HEIGHT + 300:
             if self.playerShootCarrotAmount >= 3:
@@ -277,7 +276,7 @@ class Game:
                 self.playing = False
 
         # generate new random platforms
-        platformAmount = 15 - self.score/750
+        platformAmount = 20 - self.score/3000
         if platformAmount < 5:
             platformAmount = 5
         while len(self.platforms) < platformAmount:
@@ -309,7 +308,7 @@ class Game:
                         if now - self.timeSincePlayerShot > self.playerShootCooldown:
                             self.timeSincePlayerShot = now
                             for i in range(self.playerShootCarrotAmount):
-                                Carrot(self, self.player.rect.centerx, self.player.rect.centery, self.playerShootCarrotAmount)
+                                Carrot(self, self.player.rect.centerx, self.player.rect.centery, self.playerShootCarrotAmount, self.player.direction)
                         # self.head_jump_sound.play()
     def draw(self):
         self.screen.fill(SKY_BLUE)

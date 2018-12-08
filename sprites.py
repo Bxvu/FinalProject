@@ -36,6 +36,7 @@ class Player(Sprite):
         self.current_frame = 0
         self.last_update = 0
         self.load_images()
+        self.direction = "left"
         # self.image = pg.Surface((30,40))
         # self.image = self.game.spritesheet.get_image(614,1063,120,191)
         self.image = self.standing_frames[0]
@@ -80,8 +81,12 @@ class Player(Sprite):
         else:
             if keys[pg.K_a]:
                 self.acc.x =  -PLAYER_ACC
-            if keys[pg.K_d]:
+                self.direction = "left"
+            elif keys[pg.K_d]:
                 self.acc.x = PLAYER_ACC
+                self.direction = "right"
+            else:
+                self.direction = "up"
         # set player friction
         self.acc.x += self.vel.x * PLAYER_FRICTION
         # equations of motion
@@ -161,6 +166,101 @@ class Player(Sprite):
                     self.rect.bottom = bottom
         # collide will find this property if it is called self.mask
         self.mask = pg.mask.from_surface(self.image)
+#carrots that go up and kill enemies
+class Carrot(Sprite):
+    def __init__(self, game, playerPosX, playerPosY, carrotAmount, direction):
+        self._layer = MOB_LAYER
+        # add a groups property where we can pass all instances of this object into game groups
+        self.groups = game.all_sprites, game.carrots
+        Sprite.__init__(self, self.groups)
+        self.game = game
+        self.image = pg.Surface((78,70))
+        self.image = self.game.spritesheet.get_image(820, 1733, 78, 70)
+        self.image.set_colorkey(BLACK)
+        self.rect = self.image.get_rect()
+        self.rect.centerx = playerPosX
+        self.rect.centery = playerPosY + 5
+        self.image = pg.transform.rotate(self.image,randint(0,360))
+        self.carrotAmount = carrotAmount
+        if direction == "right":
+            if self.carrotAmount == 1:
+                self.carrotMoveY = randint(0,0) 
+                self.carrotMoveX = 10     
+            elif self.carrotAmount > 1:
+                self.carrotMoveY = randint(-3,3)
+                self.carrotMoveX = randint(8,12)        
+            elif self.carrotAmount > 5:
+                self.carrotMoveY = randint(-12,12)
+                self.carrotMoveX = randint(6,14) 
+            elif self.carrotAmount > 7:
+                self.carrotMoveY = randint(-30,30)
+                self.carrotMoveX = randint(4,16) 
+        elif direction == "left":
+            if self.carrotAmount == 1:
+                self.carrotMoveY = randint(0,0) 
+                self.carrotMoveX = -10     
+            elif self.carrotAmount > 1:
+                self.carrotMoveY = randint(-3,3)
+                self.carrotMoveX = -(randint(8,12))        
+            elif self.carrotAmount > 5:
+                self.carrotMoveY = randint(-12,12)
+                self.carrotMoveX = -(randint(6,14))
+            elif self.carrotAmount > 7:
+                self.carrotMoveY = randint(-30,30)
+                self.carrotMoveX = -(randint(4,16)) 
+        else:
+            if self.carrotAmount == 1:
+                self.carrotMoveX = randint(0,0) 
+                self.carrotMoveY = 10     
+            elif self.carrotAmount > 1:
+                self.carrotMoveX = randint(-3,3)
+                self.carrotMoveY = randint(8,12)        
+            elif self.carrotAmount > 5:
+                self.carrotMoveX = randint(-12,12)
+                self.carrotMoveY = randint(6,14) 
+            elif self.carrotAmount > 7:
+                self.carrotMoveX = randint(-30,30)
+                self.carrotMoveY = randint(4,16) 
+    def update(self):
+        self.rect.y += -self.carrotMoveY
+        self.rect.x += self.carrotMoveX
+        self.image = pg.transform.rotate(self.image,0)
+        if self.rect.top < -40 or self.rect.bottom > HEIGHT + 40:
+            self.kill()
+        if self.rect.left > WIDTH + 100 or self.rect.right < -100:
+            self.kill()
+# shield which protects player from enemies and their attacks
+class Shield(Sprite):
+    def __init__(self, game, player):
+        # allows layering in LayeredUpdates sprite group
+        self._layer = POW_LAYER
+        # add a groups property where we can pass all instances of this object into game groups
+        self.groups = game.all_sprites, game.shield
+        Sprite.__init__(self, self.groups)
+        self.game = game
+        self.player = player
+        self.image = self.game.spritesheet.get_image(0, 1662, 211, 215)
+        self.image.set_colorkey(BLACK)
+        self.image = pg.transform.scale(self.image, (175, 175))
+        self.rect = self.image.get_rect()
+        self.rect.centerx = self.player.rect.centerx
+        self.rect.bottom = self.player.rect.top
+        self.rect.x = self.player.rect.x - 55
+        self.rect.y = self.player.rect.y - 35
+        self.last_update = 0
+        self.health = 1
+    def update(self):
+        if self.health > 0:
+            self.rect.bottom = self.player.rect.top
+            self.rect.x = self.player.rect.x - 55
+            self.rect.y = self.player.rect.y - 35
+            now = pg.time.get_ticks()
+            if now - self.last_update > 100:
+                self.last_update = now     
+                self.image = pg.transform.rotate(self.image, 90)
+        else:
+            self.kill()
+
 class Cloud(Sprite):
     def __init__(self, game):
         # allows layering in LayeredUpdates sprite group
@@ -240,14 +340,17 @@ class Pow(Sprite):
         Sprite.__init__(self, self.groups)
         self.game = game
         self.plat = plat
-        self.type = random.choice(['boost', 'carrotsUpgrade'])
+        self.type = random.choice(['boost', 'carrotsUpgrade', 'shield'])
         self.powerIcons = [self.game.spritesheet.get_image(820, 1805, 71, 70),
-                    self.game.spritesheet.get_image(812, 554, 54, 49)
+                    self.game.spritesheet.get_image(812, 554, 54, 49),
+                    self.game.spritesheet.get_image(826, 134, 71, 70)
                     ]
         if self.type == 'boost':
             self.image = self.powerIcons[0]
         elif self.type == 'carrotsUpgrade':
             self.image = self.powerIcons[1]
+        elif self.type == 'shield':
+            self.image = self.powerIcons[2]
         else:
             self.image = self.powerIcons[0]
         self.image.set_colorkey(BLACK)
@@ -486,39 +589,5 @@ class VerticalMobAttack(Sprite):
                 self.rect.x += 10
             else:
                 self.rect.x -= 10
-#carrots that go up and kill enemies
-class Carrot(Sprite):
-    def __init__(self, game, playerPosX, playerPosY, carrotAmount):
-        self._layer = MOB_LAYER
-        # add a groups property where we can pass all instances of this object into game groups
-        self.groups = game.all_sprites, game.carrots
-        Sprite.__init__(self, self.groups)
-        self.game = game
-        self.image = pg.Surface((78,70))
-        self.image = self.game.spritesheet.get_image(820, 1733, 78, 70)
-        self.image.set_colorkey(BLACK)
-        self.rect = self.image.get_rect()
-        self.rect.centerx = playerPosX
-        self.rect.centery = playerPosY + 5
-        self.image = pg.transform.rotate(self.image,randint(0,360))
-        self.carrotAmount = carrotAmount
-        if self.carrotAmount == 1:
-            self.carrotMoveX = randint(0,0) 
-            self.carrotMoveY = 10     
-        elif self.carrotAmount > 1:
-            self.carrotMoveX = randint(-3,3)
-            self.carrotMoveY = randint(8,12)        
-        elif self.carrotAmount > 5:
-            self.carrotMoveX = randint(-12,12)
-            self.carrotMoveY = randint(6,14) 
-        elif self.carrotAmount > 7:
-            self.carrotMoveX = randint(-30,30)
-            self.carrotMoveY = randint(4,16) 
-    def update(self):
-        self.rect.y += -self.carrotMoveY
-        self.rect.x += self.carrotMoveX
-        self.image = pg.transform.rotate(self.image,0)
-        if self.rect.top < -40:
-            self.kill()
         
        
