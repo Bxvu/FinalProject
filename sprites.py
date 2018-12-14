@@ -37,11 +37,8 @@ class Player(Sprite):
         self.last_update = 0
         self.load_images()
         self.direction = "left"
-        # self.image = pg.Surface((30,40))
-        # self.image = self.game.spritesheet.get_image(614,1063,120,191)
         self.image = self.standing_frames[0]
         self.image.set_colorkey(BLACK)
-        # self.image.fill(BLACK)
         self.rect = self.image.get_rect()
         self.rect.center = (WIDTH / 2, HEIGHT /2)
         self.pos = vec(WIDTH / 2, HEIGHT / 2)
@@ -69,8 +66,6 @@ class Player(Sprite):
     def update(self):
         self.animate()
         self.acc = vec(0, PLAYER_GRAV)
-        # print("acc " + str(self.acc))
-        # print("vel " + str(self.vel))
 
         keys = pg.key.get_pressed()
         if self.isDead:
@@ -182,6 +177,7 @@ class Carrot(Sprite):
         self.rect.centery = playerPosY + 5
         self.image = pg.transform.rotate(self.image,randint(0,360))
         self.carrotAmount = carrotAmount
+        #direction where the carrots move
         if direction == "right":
             if self.carrotAmount == 1:
                 self.carrotMoveY = randint(0,0) 
@@ -225,6 +221,7 @@ class Carrot(Sprite):
         self.rect.y += -self.carrotMoveY
         self.rect.x += self.carrotMoveX
         self.image = pg.transform.rotate(self.image,0)
+        #kills carrots of they go off screen
         if self.rect.top < -40 or self.rect.bottom > HEIGHT + 40:
             self.kill()
         if self.rect.left > WIDTH + 100 or self.rect.right < -100:
@@ -241,26 +238,50 @@ class Shield(Sprite):
         self.player = player
         self.image = self.game.spritesheet.get_image(0, 1662, 211, 215)
         self.image.set_colorkey(BLACK)
-        self.image = pg.transform.scale(self.image, (175, 175))
+        self.image = pg.transform.scale(self.image, (20, 20))
         self.rect = self.image.get_rect()
         self.rect.centerx = self.player.rect.centerx
         self.rect.bottom = self.player.rect.top
         self.rect.x = self.player.rect.x - 55
         self.rect.y = self.player.rect.y - 35
         self.last_update = 0
+        self.spawn_Animation = True
+        self.sizeX = 20
+        self.sizeY = 20
         self.health = 1
     def update(self):
-        if self.health > 0:
-            self.rect.bottom = self.player.rect.top
-            self.rect.x = self.player.rect.x - 55
-            self.rect.y = self.player.rect.y - 35
+        # only does spawn animation at the beginning
+        if self.spawn_Animation == True:
             now = pg.time.get_ticks()
-            if now - self.last_update > 100:
-                self.last_update = now     
-                self.image = pg.transform.rotate(self.image, 90)
-        else:
-            self.kill()
-
+            if now - self.last_update > 25:
+                self.last_update = now  
+                self.image = self.game.spritesheet.get_image(0, 1662, 211, 215)
+                self.image = pg.transform.scale(self.image, (self.sizeX, self.sizeY))
+                self.rect = self.image.get_rect()
+                self.rect.centerx = self.player.rect.centerx
+                self.rect.bottom = self.player.rect.top
+                self.sizeX += 10
+                self.sizeY += 10
+                self.image.set_colorkey(BLACK)
+                self.rect.bottom = self.player.rect.top
+                self.rect.x = self.player.rect.x - 40
+                self.rect.y = self.player.rect.y - 15
+                if self.sizeX >= 140:
+                    self.sizeX = 140
+                    self.sizeY = 140
+                    self.spawn_Animation = False
+        if self.spawn_Animation == False:
+            if self.health > 0:
+                self.rect.bottom = self.player.rect.top
+                self.rect.x = self.player.rect.x - 35
+                self.rect.y = self.player.rect.y - 15
+                now = pg.time.get_ticks()
+                if now - self.last_update > 100:
+                    self.last_update = now     
+                    self.image = pg.transform.rotate(self.image, 90)
+            else:
+                self.kill()
+# background decorations
 class Cloud(Sprite):
     def __init__(self, game):
         # allows layering in LayeredUpdates sprite group
@@ -319,18 +340,17 @@ class Platform(Sprite):
             self.image = random.choice(imagesStone)
         self.image.set_colorkey(BLACK)
         '''leftovers from random rectangles before images'''
-        # self.image = pg.Surface((w,h))
-        # self.image.fill(WHITE)
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
+        #chance to spawn powerups and decorations
         if random.randrange(100) < POW_SPAWN_PCT:
             Pow(self.game, self)
         if random.randrange(100) < 75:
             Deco(self.game, self, zone)
             if random.randrange(100) < 75:
                 Deco(self.game, self, zone)
-
+#power ups
 class Pow(Sprite):
     def __init__(self, game, plat):
         # allows layering in LayeredUpdates sprite group
@@ -341,10 +361,13 @@ class Pow(Sprite):
         self.game = game
         self.plat = plat
         self.type = random.choice(['boost', 'carrotsUpgrade', 'shield'])
+        if len(self.game.shield) > 0:
+            self.type = random.choice(['boost', 'carrotsUpgrade'])
         self.powerIcons = [self.game.spritesheet.get_image(820, 1805, 71, 70),
                     self.game.spritesheet.get_image(812, 554, 54, 49),
                     self.game.spritesheet.get_image(826, 134, 71, 70)
                     ]
+        # sets images depending on type
         if self.type == 'boost':
             self.image = self.powerIcons[0]
         elif self.type == 'carrotsUpgrade':
@@ -402,7 +425,6 @@ class Deco(Sprite):
             self.image = random.choice(imagesSnow)
         elif zone == "stone":
             self.image = random.choice(imagesStone)
-        # self.image = random.choice(images)
         self.image.set_colorkey(BLACK)
         self.rect = self.image.get_rect()
         self.rect.centerx = self.plat.rect.centerx - randint(-(self.plat.rect.width)/2,self.plat.rect.width/2)
@@ -412,6 +434,40 @@ class Deco(Sprite):
         # checks to see if plat is in the game's platforms group so we can kill the powerup instance
         if not self.game.platforms.has(self.plat):
             self.kill()
+# tried to add a background sprite that changes with score, ended up being too laggy
+# class Background(Sprite):
+#     def __init__(self, game, zone):
+#         # allows layering in LayeredUpdates sprite group
+#         self._layer = BACKGROUND_LAYER
+#         # add Platforms to game groups when instantiated
+#         self.groups = game.all_sprites
+#         Sprite.__init__(self, self.groups)
+#         self.game = game
+#         self.image = self.game.background_images
+#         # if zone == "grass":
+#         #     self.image = random.choice(imagesGrass)
+#         # elif zone == "wood":
+#         #     self.image = random.choice(imagesWood)
+#         # elif zone == "sand":
+#         #     self.image = random.choice(imagesSand)
+#         # elif zone == "snow":
+#         #     self.image = random.choice(imagesSnow)
+#         # elif zone == "stone":
+#         #     self.image = random.choice(imagesStone)
+#         self.image.set_colorkey(BLACK)
+#         '''leftovers from random rectangles before images'''
+#         # self.image = pg.Surface((w,h))
+#         # self.image.fill(WHITE)
+#         self.rect = self.image.get_rect()
+#         self.rect.x = 0
+#         self.rect.y = 0
+#     # def update(self):
+#     #     self.image = self.game.background_images
+#     #     self.image.set_colorkey(BLACK)
+#     #     self.rect = self.image.get_rect()
+#     #     self.rect.x = 0
+#     #     self.rect.y = 0
+#     #     self.kill()
 #mob that moves horizontally
 class Mob(Sprite):
     def __init__(self, game, score):
@@ -436,7 +492,8 @@ class Mob(Sprite):
         self.dy = 0.5
         self.current_frame = 0
         self.attackTimer = 0
-        self.attackTimerCooldown = 2000 - score/10
+        # mob attack speed increases with the score, to a maximum
+        self.attackTimerCooldown = 2000 - score/20
         if self.attackTimerCooldown < 500:
             self.attackTimerCooldown = 500
         self.flyRange = 5 + score/2500
@@ -460,6 +517,7 @@ class Mob(Sprite):
         self.rect.y += self.vy
         if self.rect.left > WIDTH + 100 or self.rect.right < -100:
             self.kill()
+        # timer for when mob will attack
         now = pg.time.get_ticks()
         if now - self.attackTimer > self.attackTimerCooldown:
             self.attackTimer = now
@@ -500,6 +558,7 @@ class MobAttack(Sprite):
         self.rect.centerx = self.mob.rect.centerx
         self.rect.bottom = self.mob.rect.bottom + 5
     def update(self):
+        # kills sprite if it goes off screen
         if self.rect.top > HEIGHT + 40:
             self.kill()
         else:
@@ -531,6 +590,7 @@ class VerticalMob(Sprite):
         if self.rect.x < playerX + 175 and self.rect.x > playerX - 175:
             self.kill()
         self.attackTimer = 0
+        # mob attack speed that increases as the score increases, to a maximum
         self.attackTimerCooldown = 2000 - score/10
         if self.attackTimerCooldown < 500:
             self.attackTimerCooldown = 500
@@ -555,12 +615,12 @@ class VerticalMob(Sprite):
         self.rect.x += self.vx
         if self.rect.left > WIDTH + 100 or self.rect.right < -100:
             self.kill()
+        # spawns the attack
         now = pg.time.get_ticks()
         if now - self.attackTimer > self.attackTimerCooldown:
             self.attackTimer = now
-            VerticalMobAttack(self.game, self)
-            
-#attack for Vertical mob
+            VerticalMobAttack(self.game, self)         
+# attack for Vertical mob
 class VerticalMobAttack(Sprite):
     def __init__(self, game, mob):
         # allows layering in LayeredUpdates sprite group
@@ -582,6 +642,7 @@ class VerticalMobAttack(Sprite):
         self.rect.centerx = self.mob.rect.centerx
         self.rect.bottom = self.mob.rect.bottom + 5
     def update(self):
+        # kills sprite if off screen
         if self.rect.left > WIDTH + 100 or self.rect.right < -100:
             self.kill()
         else:
@@ -589,5 +650,3 @@ class VerticalMobAttack(Sprite):
                 self.rect.x += 10
             else:
                 self.rect.x -= 10
-        
-       

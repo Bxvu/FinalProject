@@ -1,21 +1,34 @@
 # this file was created by Benthan Vu
-# Sources: goo.gl/2KMivS copied from Teacher Chris Cozort
+# Sources: goo.gl/2KMivS, copied from Teacher Chris Cozort, pygame documentation
 
 '''
-Curious, Creative, Tenacious(requires hopefulness)
-
 **********Gameplay ideas:
-make platform disappear if stood on for too long
 shoot carrots up at enemy
+shoot carrots left and right
+platforms that change as you get a higher score
+enemy that goes down instead of left and right
+enemies shoot left right and down
+enemies move faster and in larger areas as score gets higher
+new power ups
+carrot upgrades as you pick up more
+shield powerup that blocks one enemy attack
+background changes
 
 **********Bugs
 when you get launched by powerup or head jump player sometimes snaps to platform abruptly 
 happens when hitting jump during power up boost
+random "ghost" enemy that is not affected by anything and can't kill player with its attacks
+
 **********Gameplay fixes
+getting killed while being boosted
 
 **********Features
 upgrades for shooting carrots at enemies
-
+enemies shoot stuff
+picking up carrots lets you shoot more at once
+if you have more than 3 carrots, you lose the carrots instead of dying
+shield powerup
+platforms and decorations on them change with higher scores
 
 '''
 import pygame as pg
@@ -26,7 +39,7 @@ from os import path
 
 class Game:
     def __init__(self):
-        #init game window
+        # init game window
         # init pygame and create window
         pg.init()
         # init sound mixer
@@ -61,6 +74,7 @@ class Game:
         self.cloud_images = []
         for i in range(1,4):
             self.cloud_images.append(pg.image.load(path.join(img_dir, 'cloud{}.png'.format(i))).convert())
+        # self.background_images = pg.image.load(path.join(img_dir, 'grass.png'))
         # load sounds
         # great place for creating sounds: https://www.bfxr.net/
         self.snd_dir = path.join(self.dir, 'snd')
@@ -68,8 +82,11 @@ class Game:
                             pg.mixer.Sound(path.join(self.snd_dir, 'Jump24.wav'))]
         self.boost_sound = pg.mixer.Sound(path.join(self.snd_dir, 'Jump29.wav'))
         self.head_jump_sound = pg.mixer.Sound(path.join(self.snd_dir, 'Jump39.wav'))
-        # self.death_sound = pg.mixer.Sound(path.join(self.snd_dir, 'WSCmeme.wav'))
+        # self.death_sound = pg.mixer.Sound(path.join(self.snd_dir, 'Jump39.wav'))
+        # self.shoot_sound = pg.mixer.Sound(path.join(self.snd_dir, 'Woosh.wav'))
+        # self.shoot_shound = pg.mixer.Sound()
     def new(self):
+        # add score, the zone so platforms change, and cooldown for carrots
         self.score = 0
         self.zone = "grass"
         self.zoneRotation = 0
@@ -89,13 +106,14 @@ class Game:
         # add powerups
         self.powerups = pg.sprite.Group()
         self.carrots = pg.sprite.Group()
-        self.mobAttacks = pg.sprite.Group()
         self.shield = pg.sprite.Group()
+        # mob attacks
+        self.mobAttacks = pg.sprite.Group()
+        # timers that doesn't let the sprite spawn until the timer is passed
         self.mob_timer = 0
         self.plat_timer = 0
         # add a player 1 to the group
         self.player = Player(self)
-        # self.shield = Shield(self,self.player)
         # add mobs
         self.mobs = pg.sprite.Group()
         #invincibility when boosted so that you wont boost into an enemy and die
@@ -104,17 +122,15 @@ class Game:
         # self.all_sprites.add(self.player)        
         # instantiate new platform 
         for plat in PLATFORM_LIST:
-            # no longer need to assign to variable because we're passing self.groups in Sprite library
-            # self.p = Platform(self, *plat)
+            # spawn platforms in list from settings
             Platform(self, self.zone, *plat)
-            # no longer needed because we pass in Sprite lib file
-            # self.all_sprites.add(p)
-            # self.platforms.add(p)
+        # spawn clouds
         for i in range(8):
             c = Cloud(self)
             c.rect.y += 500
         # load music
         pg.mixer.music.load(path.join(self.snd_dir, 'YBSS.mp3'))
+        # Background(self, self.zone)
         # call the run method
         self.run()
     def run(self):
@@ -138,8 +154,10 @@ class Game:
             self.zoneRotation += 1
             if self.zoneRotation == 0:
                 self.zone = "grass"
+                # Background(self, self.zone)
             elif self.zoneRotation == 1:
                 self.zone = "wood"
+                # Background(self, self.zone)
             elif self.zoneRotation == 2:
                 self.zone = "sand"
             elif self.zoneRotation == 3:
@@ -150,7 +168,7 @@ class Game:
                 self.zoneRotation = 0
                 self.zone = "grass"
 
-        # shall we spawn a mob?
+        # spawns a mob when timer is passed
         now = pg.time.get_ticks()
         if now - self.mob_timer > 2000 + random.choice([-1000, -500, 0, 500, 1000]):
             self.mob_timer = now
@@ -187,8 +205,7 @@ class Game:
                 if self.boosted == False:
                     self.deathAnimation = True
                     self.player.isDead = True
-                    # self.death_sound.play()
-                    # self.playing = False        
+                    # self.death_sound.play()      
 
         # check to see if player can jump - if falling
         if self.player.vel.y >= 0:
@@ -218,18 +235,14 @@ class Game:
             self.player.pos.y += max(abs(self.player.vel.y), 2)
             for cloud in self.clouds:
                 cloud.rect.y += max(abs(self.player.vel.y / randrange(2,10)), 2)
-            # creates slight scroll at the top based on player y velocity
-            # scroll plats with player
-            
+            # creates slight scroll based on player y velocity
             for mob in self.mobs:
-                # creates slight scroll based on player y velocity
                 mob.rect.y += max(abs(self.player.vel.y), 2)
             for mobAttack in self.mobAttacks:
                 mobAttack.rect.y += max(abs(self.player.vel.y), 2)
             for carrots in self.carrots:
                 carrots.rect.y += max(abs(self.player.vel.y), 2)
             for plat in self.platforms:
-                # creates slight scroll based on player y velocity
                 plat.rect.y += max(abs(self.player.vel.y), 2)
                 if plat.rect.top >= HEIGHT + 40:
                     plat.kill()
@@ -281,14 +294,9 @@ class Game:
             platformAmount = 5
         while len(self.platforms) < platformAmount:
             width = random.randrange(50, WIDTH-50)
-            ''' removed widths and height params to allow for sprites '''
-            """ changed due to passing into groups through sprites lib file """
-            # p = Platform(self, random.randrange(0,WIDTH-width), 
-            #                 random.randrange(-75, -30))
             Platform(self, self.zone, random.randrange(0,WIDTH-width), 
                                 random.randrange(-75, -30)) 
-            # self.platforms.add(p)
-            # self.all_sprites.add(p)
+# checks if player presses certain keys
     def events(self):
         for event in pg.event.get():
                 if event.type == pg.QUIT:
@@ -306,15 +314,26 @@ class Game:
                     now = pg.time.get_ticks()     
                     if event.key == pg.K_SPACE and self.deathAnimation == False:
                         if now - self.timeSincePlayerShot > self.playerShootCooldown:
+                            # self.shoot_sound.play()
                             self.timeSincePlayerShot = now
                             for i in range(self.playerShootCarrotAmount):
                                 Carrot(self, self.player.rect.centerx, self.player.rect.centery, self.playerShootCarrotAmount, self.player.direction)
                         # self.head_jump_sound.play()
     def draw(self):
-        self.screen.fill(SKY_BLUE)
+        # changes sky depending on zone
+        if self.zone == "grass":
+            self.screen.fill(SKY_BLUE)
+        elif self.zone == "wood":
+            self.screen.fill(SKY_BLUE)
+        elif self.zone == "sand":
+            self.screen.fill(SKY_BLUE)
+        elif self.zone == "stone":
+            self.screen.fill(GRAY)
+        elif self.zone == "snow":
+            self.screen.fill(GRAY)
+        else:
+            self.screen.fill(SKY_BLUE)
         self.all_sprites.draw(self.screen)
-        """ # not needed now that we're using LayeredUpdates """
-        # self.screen.blit(self.player.image, self.player.rect)
         self.draw_text("Score: " + str(self.score), 22, BLACK, WIDTH / 2, 15)
         self.draw_text("Carrots: " + str(self.playerShootCarrotAmount), 22, BLACK, WIDTH / 2, 40)
         # double buffering - renders a frame "behind" the displayed frame
